@@ -30,9 +30,30 @@
   const refParam = params.get("ref");
   if (refParam && isAddr(refParam)) {
     $("referredBy").hidden = false;
-    $("referredByAddr").textContent = short(refParam);
+    const el = $("referredByAddr");
+    el.textContent = short(refParam);
+    el.classList.add("copyable");
+    el.dataset.full = refParam;
+    el.title = "click to copy " + refParam;
     try { localStorage.setItem("coyoti_ref", refParam); } catch {}
   }
+
+  // ====== CLICK-TO-COPY (event delegation) ======
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest(".copyable");
+    if (!t) return;
+    const full = t.dataset.full;
+    if (!full) return;
+    navigator.clipboard?.writeText(full).then(() => {
+      const prev = t.textContent;
+      t.textContent = "copied ✓";
+      t.classList.add("copied");
+      setTimeout(() => {
+        t.textContent = prev;
+        t.classList.remove("copied");
+      }, 1100);
+    });
+  });
 
   // ====== RESTORE LAST USED ADDR ======
   let savedAddr = "";
@@ -239,7 +260,7 @@
           const rk = rankFor(r.points).name;
           return `<tr>
             <td>${i + 1}</td>
-            <td><code>${short(r.wallet)}</code></td>
+            <td><code class="copyable" data-full="${r.wallet}" title="click to copy ${r.wallet}">${short(r.wallet)}</code></td>
             <td>${r.refs}</td>
             <td>${r.points.toLocaleString()}</td>
             <td><span class="rk" data-rank="${rk}">${rk}</span></td>

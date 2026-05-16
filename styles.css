@@ -255,6 +255,19 @@ input[type=text]:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-
 .tbl td{font-variant-numeric:tabular-nums}
 .tbl .center{text-align:center}
 .tbl tr:hover td{background:rgba(25,224,168,.04)}
+
+.copyable{
+  cursor:pointer;
+  border-bottom:1px dashed rgba(25,224,168,.35);
+  padding-bottom:1px;
+  transition:color .12s, border-color .12s, background .12s;
+  user-select:all;
+}
+.copyable:hover{color:#2BF0B8;border-bottom-color:var(--teal)}
+.copyable.copied{
+  color:#021A12;background:var(--teal);border-bottom-color:transparent;
+  padding:0 4px;border-radius:3px;
+}
 .tbl .rk{font-family:var(--display);font-weight:700;letter-spacing:.06em;font-size:12px}
 .tbl .rk[data-rank="BRONZE"]{color:var(--bronze)}
 .tbl .rk[data-rank="SILVER"]{color:var(--silver)}
