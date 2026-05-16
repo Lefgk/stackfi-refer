@@ -287,7 +287,48 @@
     }
   })();
 
-  // ====== LEADERBOARD ======
+  // ====== LEADERBOARD (with pagination) ======
+  const LB_PAGE_SIZE = 10;
+  let lbAllRows = [];
+  let lbPage = 1;
+
+  function renderLbPage() {
+    const body = $("lbBody");
+    const pager = $("lbPager");
+    const info = $("lbPageInfo");
+    const prev = $("lbPrev");
+    const next = $("lbNext");
+    if (!lbAllRows.length) {
+      body.innerHTML = `<tr><td colspan="5" class="muted center">no buys indexed yet — be the first to mint points</td></tr>`;
+      pager.hidden = true;
+      return;
+    }
+    const totalPages = Math.max(1, Math.ceil(lbAllRows.length / LB_PAGE_SIZE));
+    lbPage = Math.min(Math.max(1, lbPage), totalPages);
+    const start = (lbPage - 1) * LB_PAGE_SIZE;
+    const slice = lbAllRows.slice(start, start + LB_PAGE_SIZE);
+
+    body.innerHTML = slice.map((r, i) => {
+      const rk = rankFor(r.points).name;
+      const rank = start + i + 1;
+      return `<tr>
+        <td>${rank}</td>
+        <td><code class="copyable" data-full="${r.wallet}" title="click to copy ${r.wallet}">${short(r.wallet)}</code></td>
+        <td>${r.refs}</td>
+        <td>${r.points.toLocaleString()}</td>
+        <td><span class="rk" data-rank="${rk}">${rk}</span></td>
+      </tr>`;
+    }).join("");
+
+    pager.hidden = totalPages <= 1;
+    info.textContent = `page ${lbPage} of ${totalPages} · ${lbAllRows.length} wallets`;
+    prev.disabled = lbPage <= 1;
+    next.disabled = lbPage >= totalPages;
+  }
+
+  $("lbPrev").addEventListener("click", () => { lbPage--; renderLbPage(); window.scrollTo({ top: document.getElementById("leaderboard").offsetTop - 20, behavior: "smooth" }); });
+  $("lbNext").addEventListener("click", () => { lbPage++; renderLbPage(); window.scrollTo({ top: document.getElementById("leaderboard").offsetTop - 20, behavior: "smooth" }); });
+
   (async function loadLeaderboard() {
     const body = $("lbBody");
     if (!API_BASE) {
@@ -297,20 +338,8 @@
     }
     try {
       const { rows, updated } = await api("/api/leaderboard");
-      if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="5" class="muted center">no buys indexed yet — be the first to mint points</td></tr>`;
-      } else {
-        body.innerHTML = rows.map((r, i) => {
-          const rk = rankFor(r.points).name;
-          return `<tr>
-            <td>${i + 1}</td>
-            <td><code class="copyable" data-full="${r.wallet}" title="click to copy ${r.wallet}">${short(r.wallet)}</code></td>
-            <td>${r.refs}</td>
-            <td>${r.points.toLocaleString()}</td>
-            <td><span class="rk" data-rank="${rk}">${rk}</span></td>
-          </tr>`;
-        }).join("");
-      }
+      lbAllRows = rows || [];
+      renderLbPage();
       $("lbUpdated").textContent = "updated " + (updated || new Date().toISOString()).replace("T", " ").slice(0, 16) + " UTC";
     } catch (e) {
       body.innerHTML = `<tr><td colspan="5" class="muted center">leaderboard offline (${e?.message || "error"})</td></tr>`;

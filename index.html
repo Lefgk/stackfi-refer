@@ -124,6 +124,45 @@
       </div>
     </section>
 
+    <!-- ============ HOW REFERRAL CREDITS WORK ============ -->
+    <section class="explain">
+      <div class="explain-head">// how adding a referrer credits points</div>
+      <div class="explain-grid">
+        <div class="explain-step">
+          <div class="explain-num">1</div>
+          <div>
+            <b>You click someone's link</b>
+            <div class="muted">e.g. <code>?ref=Alice…</code> — saved to your browser. No tx, no sig yet.</div>
+          </div>
+        </div>
+        <div class="explain-step">
+          <div class="explain-num">2</div>
+          <div>
+            <b>You connect Phantom and sign once</b>
+            <div class="muted">A free message — no SOL spent — locks <b>Alice</b> as your permanent referrer.</div>
+          </div>
+        </div>
+        <div class="explain-step">
+          <div class="explain-num">3</div>
+          <div>
+            <b>Every SOL you spend on $COYT mints points</b>
+            <div class="muted">Buyers earn <b>1,000 pts/SOL</b>. Sellers earn <b>500 pts/SOL</b>. Same as without a referrer.</div>
+          </div>
+        </div>
+        <div class="explain-step">
+          <div class="explain-num">4</div>
+          <div>
+            <b>Alice earns 10% on top — forever</b>
+            <div class="muted">100 pts per SOL you buy (50/SOL on sells). Your points are untouched.</div>
+          </div>
+        </div>
+      </div>
+      <div class="explain-foot muted">
+        Pre-existing buyers can still claim a referrer — Alice retroactively gets credit for your past trades too.
+        One referrer per wallet, locked at first signature. Self-referrals blocked.
+      </div>
+    </section>
+
     <!-- ============ REWARDS STRIP ============ -->
     <section class="strip">
       <div class="strip-item">
@@ -236,6 +275,11 @@
           <tr><td colspan="5" class="muted center">loading...</td></tr>
         </tbody>
       </table>
+      <div class="pager" id="lbPager" hidden>
+        <button class="btn small ghost" id="lbPrev" type="button">← prev</button>
+        <span class="pager-info" id="lbPageInfo">page 1</span>
+        <button class="btn small ghost" id="lbNext" type="button">next →</button>
+      </div>
     </section>
 
     <!-- ============ FAQ ============ -->
