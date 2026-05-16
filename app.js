@@ -243,6 +243,25 @@
     }
   }
 
+  // ====== LIVE TOKEN MARKET CAP ======
+  (async function loadTokenMcap() {
+    const el = $("tkMcap");
+    if (!el) return;
+    try {
+      const res = await fetch(`https://frontend-api-v3.pump.fun/coins/${TOKEN_MINT}`);
+      if (!res.ok) throw new Error("pump.fun " + res.status);
+      const d = await res.json();
+      const mc = Number(d.usd_market_cap || 0);
+      el.textContent = mc >= 1e6
+        ? `$${(mc / 1e6).toFixed(2)}M`
+        : mc >= 1e3
+          ? `$${(mc / 1e3).toFixed(0)}k`
+          : `$${mc.toFixed(0)}`;
+    } catch {
+      el.textContent = "—";
+    }
+  })();
+
   // ====== LEADERBOARD ======
   (async function loadLeaderboard() {
     const body = $("lbBody");
