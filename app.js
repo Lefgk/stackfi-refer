@@ -115,7 +115,9 @@
 
     try { localStorage.setItem("coyoti_addr", addr); } catch {}
 
-    const base = location.origin + location.pathname.replace(/\/$/, "");
+    const PROD_BASE = "https://stackfi-refer.vercel.app";
+    const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || location.protocol === "file:";
+    const base = isLocal ? PROD_BASE : (location.origin + location.pathname.replace(/\/$/, ""));
     const link = `${base}/?ref=${addr}`;
     $("linkOut").value = link;
     $("output").hidden = false;
