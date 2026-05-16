@@ -10,4 +10,5 @@ export const REFERRER_PTS_PER_SOL_SELL  = 50;
 export const MIN_SOL_TRADE              = 0.01;
 
 export const PUMP_MINT                  = "4u7KijCYFhh9hkArq41ysg4CfFns7Pv2jUKUoABCpump";
+export const WSOL_MINT                  = "So11111111111111111111111111111111111111112";
 export const LAMPORTS_PER_SOL           = 1_000_000_000;

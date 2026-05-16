@@ -6,6 +6,7 @@ import {
   REFERRER_PTS_PER_SOL_SELL,
   MIN_SOL_TRADE,
   PUMP_MINT,
+  WSOL_MINT,
   LAMPORTS_PER_SOL,
 } from "../points.js";
 
@@ -44,46 +45,52 @@ async function processEvent(evt) {
   const tokenTransfers  = evt.tokenTransfers  || [];
   const nativeTransfers = evt.nativeTransfers || [];
 
+  // SOL spent/received by a wallet = native SOL + WSOL token transfers (AMMs use WSOL).
+  function solOutFor(wallet) {
+    const native = nativeTransfers
+      .filter((n) => n.fromUserAccount === wallet)
+      .reduce((a, n) => a + Number(n.amount || 0) / LAMPORTS_PER_SOL, 0);
+    const wsol = tokenTransfers
+      .filter((t) => t.mint === WSOL_MINT && t.fromUserAccount === wallet)
+      .reduce((a, t) => a + Number(t.tokenAmount || 0), 0);
+    return native + wsol;
+  }
+  function solInFor(wallet) {
+    const native = nativeTransfers
+      .filter((n) => n.toUserAccount === wallet)
+      .reduce((a, n) => a + Number(n.amount || 0) / LAMPORTS_PER_SOL, 0);
+    const wsol = tokenTransfers
+      .filter((t) => t.mint === WSOL_MINT && t.toUserAccount === wallet)
+      .reduce((a, t) => a + Number(t.tokenAmount || 0), 0);
+    return native + wsol;
+  }
+
   let credited = false;
 
-  // BUY side: a wallet receives PUMP_MINT
+  // BUY side: wallet receives PUMP_MINT AND nets SOL out
   const mintReceives = tokenTransfers.filter(
-    (t) => t.mint === PUMP_MINT && Number(t.tokenAmount || 0) > 0
+    (t) => t.mint === PUMP_MINT && Number(t.tokenAmount || 0) > 0 && t.toUserAccount
   );
   for (const tt of mintReceives) {
     const buyer = tt.toUserAccount;
-    if (!buyer) continue;
-    const lamportsOut = nativeTransfers
-      .filter((n) => n.fromUserAccount === buyer)
-      .reduce((acc, n) => acc + Number(n.amount || 0), 0);
-    const solSpent = lamportsOut / LAMPORTS_PER_SOL;
-    if (solSpent < MIN_SOL_TRADE) continue;
+    const solNet = solOutFor(buyer) - solInFor(buyer);
+    if (solNet < MIN_SOL_TRADE) continue;
 
-    await creditTrade({
-      txSig, slot, wallet: buyer, side: "buy", solAmount: solSpent,
-    });
+    await creditTrade({ txSig, slot, wallet: buyer, side: "buy", solAmount: solNet });
     credited = true;
   }
 
-  // SELL side: a wallet sends PUMP_MINT out
+  // SELL side: wallet sends PUMP_MINT AND nets SOL in
   const mintSends = tokenTransfers.filter(
     (t) => t.mint === PUMP_MINT && Number(t.tokenAmount || 0) > 0 && t.fromUserAccount
   );
   for (const tt of mintSends) {
     const seller = tt.fromUserAccount;
-    if (!seller) continue;
-    // skip if same wallet also received our mint in this tx (it's an internal hop, not a sell)
-    if (mintReceives.some((r) => r.toUserAccount === seller)) continue;
+    if (mintReceives.some((r) => r.toUserAccount === seller)) continue; // internal hop
+    const solNet = solInFor(seller) - solOutFor(seller);
+    if (solNet < MIN_SOL_TRADE) continue;
 
-    const lamportsIn = nativeTransfers
-      .filter((n) => n.toUserAccount === seller)
-      .reduce((acc, n) => acc + Number(n.amount || 0), 0);
-    const solReceived = lamportsIn / LAMPORTS_PER_SOL;
-    if (solReceived < MIN_SOL_TRADE) continue;
-
-    await creditTrade({
-      txSig, slot, wallet: seller, side: "sell", solAmount: solReceived,
-    });
+    await creditTrade({ txSig, slot, wallet: seller, side: "sell", solAmount: solNet });
     credited = true;
   }
 
