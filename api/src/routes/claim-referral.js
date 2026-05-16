@@ -1,11 +1,19 @@
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { pool, ensureWallet } from "../db.js";
+import {
+  REFERRER_PTS_PER_SOL_BUY,
+  REFERRER_PTS_PER_SOL_SELL,
+} from "../points.js";
 
 const ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 // Referee signs a message with their Phantom wallet to consent to being referred.
 // Message format (exact): `coyoti-refer\nreferrer=<R>\nreferee=<E>\nts=<unix_ms>`
+//
+// Late claims ARE allowed and trigger retroactive credit:
+// every prior trade by the referee gets a corresponding referral point_event
+// inserted, crediting the referrer at 10% / 5% of buy / sell rates.
 export async function claimReferralRoute(app) {
   app.post("/api/claim-referral", async (req, reply) => {
     const { referrer, referee, message, signature_b58 } = req.body || {};
@@ -37,7 +45,6 @@ export async function claimReferralRoute(app) {
       return reply.code(400).send({ error: "stale signature (>10min)" });
     }
 
-    // verify ed25519 signature against the referee public key
     let sig, pub;
     try {
       sig = bs58.decode(signature_b58);
@@ -51,29 +58,56 @@ export async function claimReferralRoute(app) {
     await ensureWallet(null, referrer);
     await ensureWallet(null, referee);
 
-    // already locked?
+    // referee can only have one referrer, ever (PK on referee)
     const existing = await pool.query(
       "SELECT referrer FROM referrals WHERE referee = $1",
       [referee]
     );
     if (existing.rows.length) {
-      return { locked: true, referrer: existing.rows[0].referrer };
-    }
-    // already traded without ref? -> organic, can't be claimed
-    const priorBuys = await pool.query(
-      "SELECT 1 FROM trades WHERE wallet = $1 AND side = 'buy' LIMIT 1",
-      [referee]
-    );
-    if (priorBuys.rows.length) {
-      return reply
-        .code(409)
-        .send({ error: "wallet already bought organically — referral not claimable" });
+      return { locked: true, referrer: existing.rows[0].referrer, backfilled: 0 };
     }
 
-    await pool.query(
-      "INSERT INTO referrals (referee, referrer, claim_sig) VALUES ($1, $2, $3)",
-      [referee, referrer, signature_b58]
-    );
-    return { ok: true, referrer };
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "INSERT INTO referrals (referee, referrer, claim_sig) VALUES ($1, $2, $3)",
+        [referee, referrer, signature_b58]
+      );
+
+      // RETROACTIVE: credit referrer for every past trade by referee
+      const { rows: past } = await client.query(
+        "SELECT tx_sig, side, sol_amount FROM trades WHERE wallet = $1",
+        [referee]
+      );
+      let backfilled = 0;
+      let backfilledPts = 0;
+      for (const t of past) {
+        const isBuy = t.side === "buy";
+        const rate = isBuy ? REFERRER_PTS_PER_SOL_BUY : REFERRER_PTS_PER_SOL_SELL;
+        const pts  = Math.floor(Number(t.sol_amount) * rate);
+        if (pts <= 0) continue;
+        const kind = isBuy ? "referral" : "referral_sell";
+        const ins = await client.query(
+          `INSERT INTO point_events(wallet, amount, kind, src_tx)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (src_tx, kind, wallet) DO NOTHING
+           RETURNING id`,
+          [referrer, pts, kind, t.tx_sig]
+        );
+        if (ins.rows.length) {
+          backfilled++;
+          backfilledPts += pts;
+        }
+      }
+
+      await client.query("COMMIT");
+      return { ok: true, referrer, backfilled, backfilled_points: backfilledPts };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      throw e;
+    } finally {
+      client.release();
+    }
   });
 }
