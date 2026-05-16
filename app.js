@@ -1,7 +1,11 @@
 (() => {
   const $ = (id) => document.getElementById(id);
-  const isAddr = (s) => /^0x[a-fA-F0-9]{40}$/.test((s || "").trim());
-  const short = (a) => a ? a.slice(0, 6) + "…" + a.slice(-4) : "—";
+  // Solana addresses: base58, 32–44 chars (no 0, O, I, l)
+  const isAddr = (s) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test((s || "").trim());
+  const short = (a) => a ? a.slice(0, 4) + "…" + a.slice(-4) : "—";
+
+  const TOKEN_MINT = "4u7KijCYFhh9hkArq41ysg4CfFns7Pv2jUKUoABCpump";
+  const TOKEN_URL  = `https://pump.fun/coin/${TOKEN_MINT}`;
 
   // --- referred-by banner from ?ref= ---
   const params = new URLSearchParams(location.search);
@@ -9,12 +13,12 @@
   if (refParam && isAddr(refParam)) {
     $("referredBy").hidden = false;
     $("referredByAddr").textContent = short(refParam);
-    try { localStorage.setItem("stackfi_ref", refParam); } catch {}
+    try { localStorage.setItem("coyoti_ref", refParam); } catch {}
   }
 
   // --- restore last used addr ---
   let savedAddr = "";
-  try { savedAddr = localStorage.getItem("stackfi_addr") || ""; } catch {}
+  try { savedAddr = localStorage.getItem("coyoti_addr") || ""; } catch {}
   if (savedAddr) {
     $("addrInput").value = savedAddr;
     setTimeout(() => generate(savedAddr, true), 0);
@@ -26,17 +30,19 @@
     if (e.key === "Enter") generate($("addrInput").value);
   });
 
+  // --- Phantom (Solana) wallet connect ---
   $("connectBtn").addEventListener("click", async () => {
-    const eth = window.ethereum;
-    if (!eth) {
-      hint("no wallet detected — paste an address manually");
+    const provider = window.phantom?.solana || window.solana;
+    if (!provider || !provider.isPhantom) {
+      hint("no Phantom wallet detected — install phantom.app or paste an address");
       return;
     }
     try {
-      const accs = await eth.request({ method: "eth_requestAccounts" });
-      if (accs && accs[0]) {
-        $("addrInput").value = accs[0];
-        generate(accs[0]);
+      const resp = await provider.connect();
+      const pk = resp.publicKey?.toString();
+      if (pk) {
+        $("addrInput").value = pk;
+        generate(pk);
       }
     } catch (e) {
       hint("wallet connection rejected");
@@ -104,19 +110,19 @@
   function generate(raw, silent) {
     const addr = (raw || "").trim();
     if (!addr) { if (!silent) hint("paste an address first"); return; }
-    if (!isAddr(addr)) { hint("not a valid 0x address (40 hex chars)"); return; }
+    if (!isAddr(addr)) { hint("not a valid Solana address (base58, 32–44 chars)"); return; }
     hint("");
 
-    try { localStorage.setItem("stackfi_addr", addr); } catch {}
+    try { localStorage.setItem("coyoti_addr", addr); } catch {}
 
-    const base = "https://stackfi.coyoti.xyz";
+    const base = location.origin + location.pathname.replace(/\/$/, "");
     const link = `${base}/?ref=${addr}`;
     $("linkOut").value = link;
     $("output").hidden = false;
 
     const tweet = encodeURIComponent(
-      "stacking yield on @Coyoti / @StackFi — leverage, farms, vaults on PulseChain.\n\n" +
-      "points -> airdrop. use my link:\n" + link
+      "stacking on @coyoti — Solana referral game.\n\n" +
+      "grow your network. earn big. use my link:\n" + link
     );
     $("shareX").href  = `https://twitter.com/intent/tweet?text=${tweet}`;
     $("shareTg").href = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("stack with me on Coyoti")}`;
@@ -141,16 +147,16 @@
 
   // --- leaderboard (mock until backend) ---
   const sampleWallets = [
-    "0x4FB80D9d4f1B47B4a9D27B6e0A0f9c2C5B8F7E11",
-    "0x00D0876C2c1A2f3e4D5b6a7C8e9F0a1B2C3D4E5F",
-    "0xA1B2C3d4E5F60718293a4b5c6d7e8f90a1b2c3d4",
-    "0xC0FFEE1234567890AbCdEf1234567890AbCdEf12",
-    "0xDEADBEEF00112233445566778899AaBbCcDdEeFf",
-    "0xBADc0de00000Cc11223344556677889900aaBb22",
-    "0x123456789aBcDeF0123456789ABcDef012345678",
-    "0xFEEDFACE00000011223344556677889900aabb33",
-    "0xCAFEBABE0011223344556677889900AABBCCDDEE",
-    "0x9988776655443322110099887766554433221100",
+    "So11111111111111111111111111111111111111112",
+    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+    "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    "HnPmKGfX2hUUWuXh5jR6fcCxNvSj8w29VYHcDh5VJ7Mq",
+    "BoNkW4xWLh1L4ePxYxX6sV5LXcKzGQyZ8mZ9D2sZ4U6V",
+    "Ax9R5tQpVuJ2sN4WkXz6BcG7PfHmL8RvK1eYy3DnQXt5",
+    "FzgN8mWqL2pK4xR7uT9YbCvE6sJ3HdN5MaB1kPwQvX8R",
+    "5ZmHJ7sXKqL3vR8uYbN4WdC2pE9MaK7T6FxV1nQzGtP4",
   ];
   const lb = sampleWallets.map((w) => {
     const s = mockStats(w);
