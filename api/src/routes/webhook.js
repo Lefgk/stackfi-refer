@@ -41,6 +41,7 @@ async function processEvent(evt) {
   if (!evt?.signature) return false;
   const txSig = evt.signature;
   const slot  = Number(evt.slot || 0);
+  const feePayer = evt.feePayer; // the signing user — everyone else is plumbing
 
   const tokenTransfers  = evt.tokenTransfers  || [];
   const nativeTransfers = evt.nativeTransfers || [];
@@ -68,32 +69,31 @@ async function processEvent(evt) {
 
   let credited = false;
 
-  // BUY side: wallet receives PUMP_MINT AND nets SOL out
-  const mintReceives = tokenTransfers.filter(
-    (t) => t.mint === PUMP_MINT && Number(t.tokenAmount || 0) > 0 && t.toUserAccount
+  // We only ever credit the tx's feePayer (the signing user). Everything else
+  // in tokenTransfers is plumbing: pool vaults, intermediate WSOL ATAs, etc.
+  if (!feePayer) return false;
+
+  const payerReceivesMint = tokenTransfers.some(
+    (t) => t.mint === PUMP_MINT && t.toUserAccount === feePayer && Number(t.tokenAmount || 0) > 0
   );
-  for (const tt of mintReceives) {
-    const buyer = tt.toUserAccount;
-    const sol = solNet(buyer, "out");
-    if (sol < MIN_SOL_TRADE) continue;
-
-    await creditTrade({ txSig, slot, wallet: buyer, side: "buy", solAmount: sol });
-    credited = true;
-  }
-
-  // SELL side: wallet sends PUMP_MINT AND nets SOL in
-  const mintSends = tokenTransfers.filter(
-    (t) => t.mint === PUMP_MINT && Number(t.tokenAmount || 0) > 0 && t.fromUserAccount
+  const payerSendsMint = tokenTransfers.some(
+    (t) => t.mint === PUMP_MINT && t.fromUserAccount === feePayer && Number(t.tokenAmount || 0) > 0
   );
-  for (const tt of mintSends) {
-    const seller = tt.fromUserAccount;
-    if (mintReceives.some((r) => r.toUserAccount === seller)) continue; // internal hop
-    const sol = solNet(seller, "in");
-    if (sol < MIN_SOL_TRADE) continue;
 
-    await creditTrade({ txSig, slot, wallet: seller, side: "sell", solAmount: sol });
-    credited = true;
+  if (payerReceivesMint && !payerSendsMint) {
+    const sol = solNet(feePayer, "out");
+    if (sol >= MIN_SOL_TRADE) {
+      await creditTrade({ txSig, slot, wallet: feePayer, side: "buy", solAmount: sol });
+      credited = true;
+    }
+  } else if (payerSendsMint && !payerReceivesMint) {
+    const sol = solNet(feePayer, "in");
+    if (sol >= MIN_SOL_TRADE) {
+      await creditTrade({ txSig, slot, wallet: feePayer, side: "sell", solAmount: sol });
+      credited = true;
+    }
   }
+  // if both true (mint comes in AND goes out for same user) it's a transfer / arb / etc — skip.
 
   return credited;
 }
