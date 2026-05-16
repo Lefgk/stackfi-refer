@@ -59,9 +59,9 @@ export async function claimReferralRoute(app) {
     if (existing.rows.length) {
       return { locked: true, referrer: existing.rows[0].referrer };
     }
-    // already bought without ref? -> organic, can't be claimed
+    // already traded without ref? -> organic, can't be claimed
     const priorBuys = await pool.query(
-      "SELECT 1 FROM buys WHERE buyer = $1 LIMIT 1",
+      "SELECT 1 FROM trades WHERE wallet = $1 AND side = 'buy' LIMIT 1",
       [referee]
     );
     if (priorBuys.rows.length) {

@@ -1,8 +1,6 @@
 (() => {
   // ====== CONFIG ======
-  // Set this to your Railway URL after deploying /api (e.g. "https://coyoti-api.up.railway.app").
-  // Leave empty to show a "indexer not live" state instead of fake data.
-  const API_BASE = "";
+  const API_BASE = "https://coyoti-api-production.up.railway.app";
 
   const PROD_BASE = "https://stackfi-refer.vercel.app";
   const TOKEN_MINT = "4u7KijCYFhh9hkArq41ysg4CfFns7Pv2jUKUoABCpump";
