@@ -45,24 +45,25 @@ async function processEvent(evt) {
   const tokenTransfers  = evt.tokenTransfers  || [];
   const nativeTransfers = evt.nativeTransfers || [];
 
-  // SOL spent/received by a wallet = native SOL + WSOL token transfers (AMMs use WSOL).
-  function solOutFor(wallet) {
-    const native = nativeTransfers
-      .filter((n) => n.fromUserAccount === wallet)
-      .reduce((a, n) => a + Number(n.amount || 0) / LAMPORTS_PER_SOL, 0);
-    const wsol = tokenTransfers
-      .filter((t) => t.mint === WSOL_MINT && t.fromUserAccount === wallet)
+  // Real SOL value spent or received by a wallet in this tx.
+  // If the wallet moved WSOL, that IS the SOL leg (AMM swaps wrap SOL through WSOL).
+  // Otherwise fall back to native SOL (bonding-curve / direct transfers).
+  // Mixing both double-counts wrap/unwrap plumbing.
+  function solNet(wallet, dir /* 'out'|'in' */) {
+    const wsolFor = (filterFn) => tokenTransfers
+      .filter((t) => t.mint === WSOL_MINT && filterFn(t))
       .reduce((a, t) => a + Number(t.tokenAmount || 0), 0);
-    return native + wsol;
-  }
-  function solInFor(wallet) {
-    const native = nativeTransfers
-      .filter((n) => n.toUserAccount === wallet)
+    const wsolOut = wsolFor((t) => t.fromUserAccount === wallet);
+    const wsolIn  = wsolFor((t) => t.toUserAccount === wallet);
+    if (wsolOut > 0 || wsolIn > 0) {
+      return dir === "out" ? Math.max(0, wsolOut - wsolIn) : Math.max(0, wsolIn - wsolOut);
+    }
+    const nativeFor = (filterFn) => nativeTransfers
+      .filter(filterFn)
       .reduce((a, n) => a + Number(n.amount || 0) / LAMPORTS_PER_SOL, 0);
-    const wsol = tokenTransfers
-      .filter((t) => t.mint === WSOL_MINT && t.toUserAccount === wallet)
-      .reduce((a, t) => a + Number(t.tokenAmount || 0), 0);
-    return native + wsol;
+    const nativeOut = nativeFor((n) => n.fromUserAccount === wallet);
+    const nativeIn  = nativeFor((n) => n.toUserAccount === wallet);
+    return dir === "out" ? Math.max(0, nativeOut - nativeIn) : Math.max(0, nativeIn - nativeOut);
   }
 
   let credited = false;
@@ -73,10 +74,10 @@ async function processEvent(evt) {
   );
   for (const tt of mintReceives) {
     const buyer = tt.toUserAccount;
-    const solNet = solOutFor(buyer) - solInFor(buyer);
-    if (solNet < MIN_SOL_TRADE) continue;
+    const sol = solNet(buyer, "out");
+    if (sol < MIN_SOL_TRADE) continue;
 
-    await creditTrade({ txSig, slot, wallet: buyer, side: "buy", solAmount: solNet });
+    await creditTrade({ txSig, slot, wallet: buyer, side: "buy", solAmount: sol });
     credited = true;
   }
 
@@ -87,10 +88,10 @@ async function processEvent(evt) {
   for (const tt of mintSends) {
     const seller = tt.fromUserAccount;
     if (mintReceives.some((r) => r.toUserAccount === seller)) continue; // internal hop
-    const solNet = solInFor(seller) - solOutFor(seller);
-    if (solNet < MIN_SOL_TRADE) continue;
+    const sol = solNet(seller, "in");
+    if (sol < MIN_SOL_TRADE) continue;
 
-    await creditTrade({ txSig, slot, wallet: seller, side: "sell", solAmount: solNet });
+    await creditTrade({ txSig, slot, wallet: seller, side: "sell", solAmount: sol });
     credited = true;
   }
 
