@@ -1,13 +1,33 @@
 (() => {
+  // ====== CONFIG ======
+  // Set this to your Railway URL after deploying /api (e.g. "https://coyoti-api.up.railway.app").
+  // Leave empty to show a "indexer not live" state instead of fake data.
+  const API_BASE = "";
+
+  const PROD_BASE = "https://stackfi-refer.vercel.app";
+  const TOKEN_MINT = "4u7KijCYFhh9hkArq41ysg4CfFns7Pv2jUKUoABCpump";
+
+  // ====== HELPERS ======
   const $ = (id) => document.getElementById(id);
   // Solana addresses: base58, 32–44 chars (no 0, O, I, l)
   const isAddr = (s) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test((s || "").trim());
-  const short = (a) => a ? a.slice(0, 4) + "…" + a.slice(-4) : "—";
+  const short = (a) => (a ? a.slice(0, 4) + "…" + a.slice(-4) : "—");
+  function hint(msg) { $("addrHint").textContent = msg || ""; }
 
-  const TOKEN_MINT = "4u7KijCYFhh9hkArq41ysg4CfFns7Pv2jUKUoABCpump";
-  const TOKEN_URL  = `https://pump.fun/coin/${TOKEN_MINT}`;
+  async function api(path, opts) {
+    if (!API_BASE) throw new Error("API not configured");
+    const res = await fetch(API_BASE + path, {
+      ...opts,
+      headers: { "content-type": "application/json", ...(opts?.headers || {}) },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `http ${res.status}`);
+    }
+    return res.json();
+  }
 
-  // --- referred-by banner from ?ref= ---
+  // ====== REFERRED-BY BANNER ======
   const params = new URLSearchParams(location.search);
   const refParam = params.get("ref");
   if (refParam && isAddr(refParam)) {
@@ -16,7 +36,7 @@
     try { localStorage.setItem("coyoti_ref", refParam); } catch {}
   }
 
-  // --- restore last used addr ---
+  // ====== RESTORE LAST USED ADDR ======
   let savedAddr = "";
   try { savedAddr = localStorage.getItem("coyoti_addr") || ""; } catch {}
   if (savedAddr) {
@@ -24,13 +44,13 @@
     setTimeout(() => generate(savedAddr, true), 0);
   }
 
-  // --- input handlers ---
+  // ====== INPUT HANDLERS ======
   $("genBtn").addEventListener("click", () => generate($("addrInput").value));
   $("addrInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") generate($("addrInput").value);
   });
 
-  // --- Phantom (Solana) wallet connect ---
+  // ====== PHANTOM CONNECT + REFERRAL CLAIM ======
   $("connectBtn").addEventListener("click", async () => {
     const provider = window.phantom?.solana || window.solana;
     if (!provider || !provider.isPhantom) {
@@ -40,15 +60,63 @@
     try {
       const resp = await provider.connect();
       const pk = resp.publicKey?.toString();
-      if (pk) {
-        $("addrInput").value = pk;
-        generate(pk);
+      if (!pk) return;
+
+      $("addrInput").value = pk;
+      generate(pk);
+
+      // if we have a stored referrer and it isn't us, prompt the user to sign a claim
+      const storedRef = (() => {
+        try { return localStorage.getItem("coyoti_ref") || ""; } catch { return ""; }
+      })();
+      if (API_BASE && storedRef && isAddr(storedRef) && storedRef !== pk) {
+        await tryClaimReferral(provider, storedRef, pk);
       }
     } catch (e) {
-      hint("wallet connection rejected");
+      hint(e?.message || "wallet connection rejected");
     }
   });
 
+  async function tryClaimReferral(provider, referrer, referee) {
+    try {
+      const ts = Date.now();
+      const message = `coyoti-refer\nreferrer=${referrer}\nreferee=${referee}\nts=${ts}`;
+      const encoded = new TextEncoder().encode(message);
+      const signed = await provider.signMessage(encoded, "utf8");
+      const sigBytes = signed.signature || signed; // some wallets return raw bytes
+      const signature_b58 = bytesToBase58(sigBytes);
+
+      const res = await api("/api/claim-referral", {
+        method: "POST",
+        body: JSON.stringify({ referrer, referee, message, signature_b58 }),
+      });
+      if (res.locked) {
+        hint("referral already locked to " + short(res.referrer));
+      } else if (res.ok) {
+        hint("✓ referral locked to " + short(referrer));
+      }
+    } catch (e) {
+      hint("could not lock referral: " + (e?.message || "unknown"));
+    }
+  }
+
+  // base58 encoder (avoids adding a dep on the frontend)
+  const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  function bytesToBase58(bytes) {
+    const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    let n = 0n;
+    for (const b of arr) n = (n << 8n) | BigInt(b);
+    let s = "";
+    while (n > 0n) {
+      const r = Number(n % 58n);
+      n = n / 58n;
+      s = B58_ALPHABET[r] + s;
+    }
+    for (const b of arr) { if (b === 0) s = "1" + s; else break; }
+    return s;
+  }
+
+  // ====== COPY / SHARE / QR ======
   $("copyBtn").addEventListener("click", () => {
     const v = $("linkOut").value;
     navigator.clipboard?.writeText(v).then(() => {
@@ -68,9 +136,7 @@
     box.hidden = false;
   });
 
-  function hint(msg) { $("addrHint").textContent = msg || ""; }
-
-  // ---- rank system (Bronze → Diamond) ----
+  // ====== TIERS ======
   const RANKS = [
     { name: "BRONZE",  min: 0,      next: 1000,    mult: 1.0 },
     { name: "SILVER",  min: 1000,   next: 10000,   mult: 1.5 },
@@ -88,17 +154,6 @@
     const pct = Math.max(2, Math.min(100, Math.round(((points - rank.min) / span) * 100)));
     return { pct, toNext: rank.next - points };
   }
-
-  // deterministic mock seeded by address (until backend is wired)
-  function mockStats(addr) {
-    let h = 0;
-    for (let i = 0; i < addr.length; i++) h = (h * 31 + addr.charCodeAt(i)) >>> 0;
-    const points = (h % 145000) + 240;
-    const refs   = (h % 38);
-    const depth  = refs + ((h >>> 3) % 80);
-    return { points, refs, depth };
-  }
-
   function setActiveTier(rankName) {
     document.querySelectorAll(".tier").forEach((el) => {
       el.classList.toggle("active", el.dataset.rank === rankName);
@@ -107,7 +162,33 @@
     if (card) card.setAttribute("data-rank", rankName);
   }
 
-  function generate(raw, silent) {
+  function renderStats(addr, s) {
+    const rank = rankFor(s.points);
+    const prog = rankProgress(s.points, rank);
+    $("statPoints").textContent = s.points.toLocaleString();
+    $("statRefs").textContent   = s.refs;
+    $("statDepth").textContent  = s.buy_points?.toLocaleString?.() ?? "—";
+    $("statMult").textContent   = rank.mult.toFixed(1) + "×";
+    $("tierLabel").textContent  = rank.name;
+    $("progressBar").style.width = prog.pct + "%";
+    $("rankSub").textContent = rank.next === Infinity
+      ? "max rank — apex of the pack"
+      : `${prog.toNext.toLocaleString()} pts to ${RANKS[RANKS.indexOf(rank) + 1].name}`;
+    setActiveTier(rank.name);
+  }
+  function renderEmpty() {
+    $("statPoints").textContent = "0";
+    $("statRefs").textContent   = "0";
+    $("statDepth").textContent  = "0";
+    $("statMult").textContent   = "1.0×";
+    $("tierLabel").textContent  = "BRONZE";
+    $("progressBar").style.width = "2%";
+    $("rankSub").textContent = API_BASE ? "no buys yet — buy the token to mint points" : "indexer not yet live";
+    setActiveTier("BRONZE");
+  }
+
+  // ====== GENERATE LINK + LOAD STATS ======
+  async function generate(raw, silent) {
     const addr = (raw || "").trim();
     if (!addr) { if (!silent) hint("paste an address first"); return; }
     if (!isAddr(addr)) { hint("not a valid Solana address (base58, 32–44 chars)"); return; }
@@ -115,7 +196,6 @@
 
     try { localStorage.setItem("coyoti_addr", addr); } catch {}
 
-    const PROD_BASE = "https://stackfi-refer.vercel.app";
     const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || location.protocol === "file:";
     const base = isLocal ? PROD_BASE : (location.origin + location.pathname.replace(/\/$/, ""));
     const link = `${base}/?ref=${addr}`;
@@ -129,54 +209,43 @@
     $("shareX").href  = `https://twitter.com/intent/tweet?text=${tweet}`;
     $("shareTg").href = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("stack with me on Coyoti")}`;
 
-    const s = mockStats(addr);
-    const rank = rankFor(s.points);
-    const prog = rankProgress(s.points, rank);
-
-    $("statPoints").textContent = s.points.toLocaleString();
-    $("statRefs").textContent   = s.refs;
-    $("statDepth").textContent  = s.depth;
-    $("statMult").textContent   = rank.mult.toFixed(1) + "×";
-
-    $("tierLabel").textContent = rank.name;
-    $("progressBar").style.width = prog.pct + "%";
-    $("rankSub").textContent = rank.next === Infinity
-      ? "max rank — apex of the pack"
-      : `${prog.toNext.toLocaleString()} pts to ${RANKS[RANKS.indexOf(rank) + 1].name}`;
-
-    setActiveTier(rank.name);
+    if (!API_BASE) { renderEmpty(); return; }
+    try {
+      const s = await api(`/api/wallet/${addr}`);
+      renderStats(addr, s);
+    } catch (e) {
+      hint("could not load stats: " + (e?.message || "unknown"));
+      renderEmpty();
+    }
   }
 
-  // --- leaderboard (mock until backend) ---
-  const sampleWallets = [
-    "So11111111111111111111111111111111111111112",
-    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
-    "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
-    "HnPmKGfX2hUUWuXh5jR6fcCxNvSj8w29VYHcDh5VJ7Mq",
-    "BoNkW4xWLh1L4ePxYxX6sV5LXcKzGQyZ8mZ9D2sZ4U6V",
-    "Ax9R5tQpVuJ2sN4WkXz6BcG7PfHmL8RvK1eYy3DnQXt5",
-    "FzgN8mWqL2pK4xR7uT9YbCvE6sJ3HdN5MaB1kPwQvX8R",
-    "5ZmHJ7sXKqL3vR8uYbN4WdC2pE9MaK7T6FxV1nQzGtP4",
-  ];
-  const lb = sampleWallets.map((w) => {
-    const s = mockStats(w);
-    const r = rankFor(s.points);
-    return { wallet: w, refs: s.refs, points: s.points, rank: r.name };
-  }).sort((a, b) => b.points - a.points);
-
-  const body = $("lbBody");
-  body.innerHTML = lb.map((r, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td><code>${short(r.wallet)}</code></td>
-      <td>${r.refs}</td>
-      <td>${r.points.toLocaleString()}</td>
-      <td><span class="rk" data-rank="${r.rank}">${r.rank}</span></td>
-    </tr>
-  `).join("");
-
-  const stamp = new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC";
-  $("lbUpdated").textContent = "updated " + stamp;
+  // ====== LEADERBOARD ======
+  (async function loadLeaderboard() {
+    const body = $("lbBody");
+    if (!API_BASE) {
+      body.innerHTML = `<tr><td colspan="5" class="muted center">indexer not yet live — leaderboard will populate when the first on-chain buy is indexed</td></tr>`;
+      $("lbUpdated").textContent = "";
+      return;
+    }
+    try {
+      const { rows, updated } = await api("/api/leaderboard");
+      if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="5" class="muted center">no buys indexed yet — be the first to mint points</td></tr>`;
+      } else {
+        body.innerHTML = rows.map((r, i) => {
+          const rk = rankFor(r.points).name;
+          return `<tr>
+            <td>${i + 1}</td>
+            <td><code>${short(r.wallet)}</code></td>
+            <td>${r.refs}</td>
+            <td>${r.points.toLocaleString()}</td>
+            <td><span class="rk" data-rank="${rk}">${rk}</span></td>
+          </tr>`;
+        }).join("");
+      }
+      $("lbUpdated").textContent = "updated " + (updated || new Date().toISOString()).replace("T", " ").slice(0, 16) + " UTC";
+    } catch (e) {
+      body.innerHTML = `<tr><td colspan="5" class="muted center">leaderboard offline (${e?.message || "error"})</td></tr>`;
+    }
+  })();
 })();
