@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Coyoti — Get Your Link</title>
+  <meta name="description" content="Grow your network. Earn big. Get your Coyoti referral link, stack points, claim the airdrop." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a href="https://stackfi.coyoti.xyz" class="brand" target="_blank" rel="noopener">
+      <img src="./logo.svg" alt="Coyoti" class="logo-mark" width="32" height="32" />
+      <span class="brand-text">COYOTI<span class="brand-sub">/refer</span></span>
+    </a>
+    <nav class="nav">
+      <a href="https://stackfi.coyoti.xyz" target="_blank" rel="noopener">app</a>
+      <a href="#leaderboard">leaderboard</a>
+      <a href="#how">how it works</a>
+      <a href="#faq">faq</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-left">
+        <div class="tag">// referral program — season 01</div>
+        <h1>GET YOUR <span class="accent2 brush">LINK</span></h1>
+        <p class="tagline">GROW YOUR NETWORK. <span class="accent2">EARN BIG.</span></p>
+
+        <ul class="feat-list">
+          <li>
+            <span class="ico">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M10 13a5 5 0 0 0 7.07 0l3.54-3.54a5 5 0 0 0-7.07-7.07L11.7 4.23M14 11a5 5 0 0 0-7.07 0L3.4 14.54a5 5 0 0 0 7.07 7.07L12.3 19.8"/></svg>
+            </span>
+            <div><b>GET YOUR</b><div class="accent2">PERSONAL LINK</div></div>
+          </li>
+          <li>
+            <span class="ico">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-8 0a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-3 0-8 1.5-8 4.5V20h10v-2.5C10 16 11.5 14.7 13.5 14c-1.5-.5-3.5-1-5.5-1zm8 0c-.6 0-1.3 0-2 .1C16 14.4 17 16 17 17.5V20h7v-2.5c0-3-5-4.5-8-4.5z"/></svg>
+            </span>
+            <div><b>INVITE USERS.</b><div class="accent2">EARN POINTS.</div></div>
+          </li>
+          <li>
+            <span class="ico">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 17l6-6 4 4 8-8v4h2V3h-7v2h4l-7 7-4-4-8 8z"/></svg>
+            </span>
+            <div><b>HIGHER ACTIVITY.</b><div class="accent2">HIGHER REWARDS.</div></div>
+          </li>
+          <li>
+            <span class="ico">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M20 7h-3.2a3 3 0 1 0-4.8-3.5A3 3 0 1 0 7.2 7H4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h7V8h2v4h7a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM5 14v7h6v-7H5zm8 0v7h6v-7h-6z"/></svg>
+            </span>
+            <div><b>ONE SNAPSHOT.</b><div class="accent2">ONE MAJOR AIRDROP.</div></div>
+          </li>
+        </ul>
+
+        <div class="referred-by" id="referredBy" hidden>
+          <span class="dot"></span>
+          referred by <code id="referredByAddr"></code>
+          <span class="muted">— their cut applies automatically</span>
+        </div>
+      </div>
+
+      <!-- ============ STATS PANEL ============ -->
+      <aside class="hero-right">
+        <div class="stat-card">
+          <div class="stat-card-label">TOTAL POINTS <span class="up">↗</span></div>
+          <div class="stat-card-value" id="statPoints">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">ESTIMATED AIRDROP</div>
+          <div class="stat-card-value sm" id="statAirdrop">COMING SOON</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">RANK PROGRESS</div>
+          <div class="stat-card-value rank" id="statTier">
+            <span id="tierLabel">—</span>
+            <svg class="badge-ico" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+          <div class="rank-sub muted" id="rankSub">connect to load</div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ============ GENERATE LINK ============ -->
+    <section class="card" id="generate">
+      <div class="card-head">
+        <h2>// generate your link</h2>
+        <span class="muted">paste a wallet — or connect</span>
+      </div>
+
+      <div class="row">
+        <input id="addrInput" type="text" spellcheck="false" autocomplete="off"
+               placeholder="0x... your PulseChain / EVM address" />
+        <button id="connectBtn" class="btn ghost" type="button">connect wallet</button>
+        <button id="genBtn" class="btn" type="button">generate</button>
+      </div>
+      <div class="hint" id="addrHint"></div>
+
+      <div class="output" id="output" hidden>
+        <label class="lbl">your referral link</label>
+        <div class="link-row">
+          <input id="linkOut" type="text" readonly />
+          <button id="copyBtn" class="btn small" type="button">copy</button>
+        </div>
+
+        <div class="share">
+          <a id="shareX" class="btn small ghost" target="_blank" rel="noopener">share on X</a>
+          <a id="shareTg" class="btn small ghost" target="_blank" rel="noopener">share on telegram</a>
+          <button id="qrBtn" class="btn small ghost" type="button">show qr</button>
+        </div>
+        <div id="qrBox" class="qrbox" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ REWARDS STRIP ============ -->
+    <section class="strip">
+      <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M7 4h10v2h3v3a4 4 0 0 1-4 4 5 5 0 0 1-3 1.9V18h3v2H8v-2h3v-3.1A5 5 0 0 1 8 13a4 4 0 0 1-4-4V6h3V4zm0 4H6v1a2 2 0 0 0 1 1.7V8zm10 0v2.7A2 2 0 0 0 18 9V8h-1z"/></svg>
+        <div><b>RANK UP</b><div class="muted">BRONZE → DIAMOND</div></div>
+      </div>
+      <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>
+        <div><b>BOOST EVENTS</b><div class="muted">MORE REWARDS</div></div>
+      </div>
+      <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M5 16h4v5H5zm5-6h4v11h-4zm5 3h4v8h-4zM12 2l1.5 3 3.3.5-2.4 2.3.6 3.3L12 9.5 9 11.1l.6-3.3L7.2 5.5 10.5 5z"/></svg>
+        <div><b>TOP 100</b><div class="muted">LEADERBOARD</div></div>
+      </div>
+      <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M20 7h-3.2a3 3 0 1 0-4.8-3.5A3 3 0 1 0 7.2 7H4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h7V8h2v4h7a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/></svg>
+        <div><b>EXCLUSIVE</b><div class="muted">BONUSES</div></div>
+      </div>
+    </section>
+
+    <!-- ============ STATS GRID ============ -->
+    <section class="grid3">
+      <div class="stat">
+        <div class="stat-label">referrals</div>
+        <div class="stat-value" id="statRefs">—</div>
+        <div class="stat-sub">wallets onboarded via your link</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">network depth</div>
+        <div class="stat-value" id="statDepth">—</div>
+        <div class="stat-sub">1st + 2nd degree referrals</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">multiplier</div>
+        <div class="stat-value" id="statMult">—</div>
+        <div class="stat-sub">tier bonus applied to all points</div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="card" id="how">
+      <div class="card-head"><h2>// how points work</h2></div>
+      <ul class="bullets">
+        <li><b>10 pts</b> when a referee connects a wallet through your link.</li>
+        <li><b>1 pt per $1</b> of TVL they bring to StackFi (vaults, leverage, farms).</li>
+        <li><b>5%</b> of every point your direct referrals earn — forever.</li>
+        <li><b>1%</b> of points from their referrals (2nd degree).</li>
+        <li><b>1.5×–3×</b> multiplier applied based on rank (Bronze → Diamond).</li>
+        <li>Self-referrals, sybils, washed wallets get zeroed at snapshot.</li>
+      </ul>
+    </section>
+
+    <!-- ============ TIER LADDER ============ -->
+    <section class="card">
+      <div class="card-head"><h2>// rank ladder</h2><span class="muted">early networks get the biggest rewards</span></div>
+      <div class="tiers">
+        <div class="tier" data-rank="BRONZE"><div class="tier-name">BRONZE</div><div class="muted">0 – 999</div><div class="tier-mult">1.0×</div></div>
+        <div class="tier" data-rank="SILVER"><div class="tier-name">SILVER</div><div class="muted">1k – 9.9k</div><div class="tier-mult">1.5×</div></div>
+        <div class="tier" data-rank="GOLD"><div class="tier-name">GOLD</div><div class="muted">10k – 99k</div><div class="tier-mult">2.0×</div></div>
+        <div class="tier" data-rank="DIAMOND"><div class="tier-name">DIAMOND</div><div class="muted">100k +</div><div class="tier-mult">3.0×</div></div>
+      </div>
+    </section>
+
+    <!-- ============ LEADERBOARD ============ -->
+    <section class="card" id="leaderboard">
+      <div class="card-head">
+        <h2>// top 100 leaderboard</h2>
+        <span class="muted" id="lbUpdated"></span>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>#</th><th>wallet</th><th>refs</th><th>points</th><th>rank</th></tr></thead>
+        <tbody id="lbBody">
+          <tr><td colspan="5" class="muted center">loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="card" id="faq">
+      <div class="card-head"><h2>// faq</h2></div>
+      <details><summary>Is this a real airdrop?</summary>
+        <p>Points are tracked off-chain now and will be made claimable at TGE. No allocation is guaranteed; the team reserves the right to filter sybil activity.</p>
+      </details>
+      <details><summary>When is the snapshot?</summary>
+        <p>No fixed date. Snapshot will be announced ~7 days in advance on the Coyoti / StackFi channels. Stack early — the multiplier favors early referrers.</p>
+      </details>
+      <details><summary>Do I need to connect a wallet to refer?</summary>
+        <p>No. Just paste an address to generate a link. To claim later you'll need to sign with that address.</p>
+      </details>
+      <details><summary>Which chain?</summary>
+        <p>StackFi is live on PulseChain and Avalanche. Referrals count across both.</p>
+      </details>
+      <details><summary>How are sybils filtered?</summary>
+        <p>Standard heuristics — funding-graph clustering, behavior similarity, on-chain age. Don't try it. We'd rather give the allocation to real users.</p>
+      </details>
+    </section>
+
+    <footer class="foot">
+      <span>coyoti · refer & earn</span>
+      <span class="muted">early networks get the biggest rewards · nothing here is financial advice</span>
+    </footer>
+
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
