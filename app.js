@@ -91,7 +91,12 @@
       if (res.locked) {
         hint("referral already locked to " + short(res.referrer));
       } else if (res.ok) {
-        hint("✓ referral locked to " + short(referrer));
+        const bp = Number(res.backfilled_points || 0);
+        if (bp > 0) {
+          hint(`✓ referral locked to ${short(referrer)} — they got +${bp.toLocaleString()} retroactive pts from your ${res.backfilled} past trades`);
+        } else {
+          hint(`✓ referral locked to ${short(referrer)} — they earn 10% of every SOL you buy from now on`);
+        }
       }
     } catch (e) {
       hint("could not lock referral: " + (e?.message || "unknown"));
