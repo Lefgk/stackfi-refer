@@ -232,6 +232,8 @@ input[type=text]:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-
 .token-stats{display:flex;gap:24px;flex-wrap:wrap;margin-top:2px}
 .token-stats .lbl{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
 .token-stats .val{font-family:var(--display);font-weight:800;color:var(--teal);font-size:18px;font-variant-numeric:tabular-nums;margin-top:2px}
+.token-stats .val.pos{color:#3DDC9A}
+.token-stats .val.neg{color:#FF6B6B}
 .token-mint{display:flex;align-items:center;gap:8px}
 .token-mint .lbl{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
 .token-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}

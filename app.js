@@ -243,22 +243,47 @@
     }
   }
 
-  // ====== LIVE TOKEN MARKET CAP ======
-  (async function loadTokenMcap() {
-    const el = $("tkMcap");
-    if (!el) return;
+  // ====== LIVE TOKEN STATS (DexScreener) ======
+  function fmtUsd(n) {
+    if (!isFinite(n) || n <= 0) return "—";
+    if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+    if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}k`;
+    if (n >= 1)   return `$${n.toFixed(2)}`;
+    return `$${n.toPrecision(3)}`;
+  }
+  function fmtPct(n) {
+    if (!isFinite(n)) return "—";
+    const sign = n >= 0 ? "+" : "";
+    return `${sign}${n.toFixed(2)}%`;
+  }
+  (async function loadTokenStats() {
     try {
-      const res = await fetch(`https://frontend-api-v3.pump.fun/coins/${TOKEN_MINT}`);
-      if (!res.ok) throw new Error("pump.fun " + res.status);
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_MINT}`);
+      if (!res.ok) throw new Error("dexscreener " + res.status);
       const d = await res.json();
-      const mc = Number(d.usd_market_cap || 0);
-      el.textContent = mc >= 1e6
-        ? `$${(mc / 1e6).toFixed(2)}M`
-        : mc >= 1e3
-          ? `$${(mc / 1e3).toFixed(0)}k`
-          : `$${mc.toFixed(0)}`;
+      const p = (d.pairs || [])[0];
+      if (!p) throw new Error("no pair");
+
+      const price = Number(p.priceUsd);
+      const ch24  = Number(p.priceChange?.h24);
+      const vol24 = Number(p.volume?.h24);
+      const liq   = Number(p.liquidity?.usd);
+      const mcap  = Number(p.marketCap || p.fdv);
+
+      $("tkPrice").textContent     = fmtUsd(price);
+      const chEl = $("tkChange24");
+      chEl.textContent             = fmtPct(ch24);
+      chEl.classList.toggle("pos", ch24 >= 0);
+      chEl.classList.toggle("neg", ch24 < 0);
+      $("tkVol24").textContent     = fmtUsd(vol24);
+      $("tkLiq").textContent       = fmtUsd(liq);
+      $("tkMcap").textContent      = fmtUsd(mcap);
     } catch {
-      el.textContent = "—";
+      $("tkPrice").textContent     = "—";
+      $("tkChange24").textContent  = "—";
+      $("tkVol24").textContent     = "—";
+      $("tkLiq").textContent       = "—";
+      $("tkMcap").textContent      = "—";
     }
   })();
 
