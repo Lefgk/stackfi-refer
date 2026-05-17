@@ -4,6 +4,7 @@ import { walletRoute } from "./routes/wallet.js";
 import { leaderboardRoute } from "./routes/leaderboard.js";
 import { claimReferralRoute } from "./routes/claim-referral.js";
 import { webhookRoute } from "./routes/webhook.js";
+import { statsRoute } from "./routes/stats.js";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL || "info" } });
 
@@ -21,6 +22,7 @@ await app.register(walletRoute);
 await app.register(leaderboardRoute);
 await app.register(claimReferralRoute);
 await app.register(webhookRoute);
+await app.register(statsRoute);
 
 const port = Number(process.env.PORT || 3000);
 app.listen({ host: "0.0.0.0", port }).then(() => {

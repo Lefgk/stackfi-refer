@@ -187,6 +187,8 @@
   }
 
   function renderStats(addr, s) {
+    personalLoaded = true;
+    restorePersonalLabels();
     const rank = rankFor(s.points);
     const prog = rankProgress(s.points, rank);
     $("statPoints").textContent = s.points.toLocaleString();
@@ -209,6 +211,42 @@
     $("progressBar").style.width = "2%";
     $("rankSub").textContent = API_BASE ? "no buys yet — buy the token to mint points" : "indexer not yet live";
     setActiveTier("BRONZE");
+  }
+
+  // ====== GLOBAL STATS (shown until a personal address is loaded) ======
+  let personalLoaded = false;
+  async function loadGlobalStats() {
+    if (personalLoaded) return;
+    try {
+      const s = await api("/api/stats");
+      if (personalLoaded) return; // personal loaded while we were waiting
+      $("statPoints").textContent = Number(s.total_points).toLocaleString();
+      $("statRefs").textContent   = Number(s.total_wallets).toLocaleString();
+      $("statDepth").textContent  = Math.round(Number(s.total_sol_volume)).toLocaleString() + " SOL";
+      $("statMult").textContent   = Number(s.total_trades).toLocaleString();
+      // re-label the cards while in "global" mode
+      const labels = document.querySelectorAll(".stat-label");
+      if (labels[0]) labels[0].textContent = "wallets indexed";
+      if (labels[1]) labels[1].textContent = "total SOL traded";
+      if (labels[2]) labels[2].textContent = "trades indexed";
+      // Hero panel
+      const card = document.querySelector(".stat-card .stat-card-value.rank")?.closest(".stat-card");
+      $("tierLabel").textContent = "NETWORK";
+      if (card) card.removeAttribute("data-rank");
+      $("rankSub").textContent = s.last_trade_ts
+        ? "last trade " + new Date(s.last_trade_ts).toISOString().replace("T", " ").slice(0, 16) + " UTC"
+        : "no trades indexed yet";
+      $("progressBar").style.width = "100%";
+    } catch {
+      renderEmpty();
+    }
+  }
+
+  function restorePersonalLabels() {
+    const labels = document.querySelectorAll(".stat-label");
+    if (labels[0]) labels[0].textContent = "referrals";
+    if (labels[1]) labels[1].textContent = "buy points";
+    if (labels[2]) labels[2].textContent = "multiplier";
   }
 
   // ====== GENERATE LINK + LOAD STATS ======
@@ -242,6 +280,9 @@
       renderEmpty();
     }
   }
+
+  // ====== INITIAL GLOBAL STATS ======
+  if (API_BASE) loadGlobalStats();
 
   // ====== LIVE TOKEN STATS (DexScreener) ======
   function fmtUsd(n) {
