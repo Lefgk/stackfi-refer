@@ -350,7 +350,14 @@
     const sign = n >= 0 ? "+" : "";
     return `${sign}${n.toFixed(2)}%`;
   }
-  (async function loadTokenStats() {
+  function setVal(id, txt) { const el = $(id); if (el) el.textContent = txt; }
+  function setChange(id, n) {
+    const el = $(id); if (!el) return;
+    el.textContent = fmtPct(n);
+    el.classList.toggle("pos", isFinite(n) && n >= 0);
+    el.classList.toggle("neg", isFinite(n) && n < 0);
+  }
+  async function loadTokenStats() {
     try {
       const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_MINT}`);
       if (!res.ok) throw new Error("dexscreener " + res.status);
@@ -364,22 +371,20 @@
       const liq   = Number(p.liquidity?.usd);
       const mcap  = Number(p.marketCap || p.fdv);
 
-      $("tkPrice").textContent     = fmtUsd(price);
-      const chEl = $("tkChange24");
-      chEl.textContent             = fmtPct(ch24);
-      chEl.classList.toggle("pos", ch24 >= 0);
-      chEl.classList.toggle("neg", ch24 < 0);
-      $("tkVol24").textContent     = fmtUsd(vol24);
-      $("tkLiq").textContent       = fmtUsd(liq);
-      $("tkMcap").textContent      = fmtUsd(mcap);
+      // header ticker
+      setVal("hdPrice", fmtUsd(price));
+      setChange("hdChange", ch24);
+      setVal("hdVol",   fmtUsd(vol24));
+      setVal("hdMcap",  fmtUsd(mcap));
+
+      // body card (liquidity only)
+      setVal("tkLiq",   fmtUsd(liq));
     } catch {
-      $("tkPrice").textContent     = "—";
-      $("tkChange24").textContent  = "—";
-      $("tkVol24").textContent     = "—";
-      $("tkLiq").textContent       = "—";
-      $("tkMcap").textContent      = "—";
+      ["hdPrice","hdChange","hdVol","hdMcap","tkLiq"].forEach(i => setVal(i, "—"));
     }
-  })();
+  }
+  loadTokenStats();
+  setInterval(loadTokenStats, 60_000); // refresh every minute
 
   // ====== LEADERBOARD (with pagination) ======
   const LB_PAGE_SIZE = 10;

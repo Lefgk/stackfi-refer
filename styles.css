@@ -49,6 +49,35 @@ code{font-family:var(--mono);color:var(--teal)}
 .brand-text{font-family:var(--display);font-size:15px}
 .brand-sub{color:var(--muted);font-weight:400;margin-left:2px}
 
+/* ===== header token ticker ===== */
+.ticker{
+  display:flex;align-items:center;gap:14px;
+  padding:6px 12px;border:1px solid rgba(25,224,168,.3);border-radius:8px;
+  background:linear-gradient(180deg, rgba(25,224,168,.06), rgba(25,224,168,.01));
+  font-family:var(--mono);font-size:12px;
+  flex:0 1 auto;min-width:0;overflow:hidden;
+}
+.ticker-symbol{
+  font-family:var(--display);font-weight:800;font-size:13px;
+  color:var(--teal);letter-spacing:.04em;
+  padding-right:10px;border-right:1px dashed rgba(25,224,168,.25);
+}
+.ticker-cell{display:inline-flex;flex-direction:column;line-height:1.1;font-variant-numeric:tabular-nums}
+.ticker-cell .lbl{color:var(--muted);font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+.ticker-cell .val{color:var(--text);font-weight:600;font-size:12px;margin-top:2px}
+.ticker-cell .val.pos{color:#3DDC9A}
+.ticker-cell .val.neg{color:#FF6B6B}
+.ticker .btn{margin-left:4px;padding:6px 10px;font-size:11px}
+
+@media (max-width:1080px){ .ticker .ticker-cell:nth-of-type(3){display:none} }  /* hide vol */
+@media (max-width:920px) { .ticker .ticker-cell:nth-of-type(4){display:none} }  /* hide mcap */
+@media (max-width:780px) {
+  .ticker{padding:5px 8px;gap:8px}
+  .ticker .ticker-cell:nth-of-type(2){display:none} /* hide 24h */
+  .ticker .btn{display:none}
+}
+@media (max-width:520px) { .ticker{display:none} }
+
 .nav{display:flex;gap:20px}
 .nav a{color:var(--muted);font-size:13px;letter-spacing:.04em}
 .nav a:hover{color:var(--teal);text-decoration:none}
