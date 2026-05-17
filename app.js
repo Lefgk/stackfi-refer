@@ -2,7 +2,7 @@
   // ====== CONFIG ======
   const API_BASE = "https://coyoti-api-production.up.railway.app";
 
-  const PROD_BASE = "https://stackfi-refer.vercel.app";
+  const PROD_BASE = "https://referrals.coyoti.xyz";
   const TOKEN_MINT = "4u7KijCYFhh9hkArq41ysg4CfFns7Pv2jUKUoABCpump";
 
   // ====== HELPERS ======
