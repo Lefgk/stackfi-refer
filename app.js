@@ -69,6 +69,52 @@
     if (e.key === "Enter") generate($("addrInput").value);
   });
 
+  // ====== PHANTOM PROVIDER HELPER ======
+  let phantomProvider = null;
+  let connectedPubkey = null;
+  function getProvider() {
+    return phantomProvider || window.phantom?.solana || window.solana;
+  }
+
+  // ====== NICKNAME UI ======
+  function nickHint(msg) { const el = $("nickHint"); if (el) el.textContent = msg || ""; }
+  async function signAndSendNickname(newNick) {
+    const provider = getProvider();
+    if (!provider || !connectedPubkey) {
+      nickHint("connect your wallet first");
+      return;
+    }
+    const ts = Date.now();
+    const message = `coyoti-nickname\nwallet=${connectedPubkey}\nnickname=${newNick}\nts=${ts}`;
+    try {
+      const signed = await provider.signMessage(new TextEncoder().encode(message), "utf8");
+      const sigBytes = signed.signature || signed;
+      const signature_b58 = bytesToBase58(sigBytes);
+      const res = await api("/api/nickname", {
+        method: "POST",
+        body: JSON.stringify({ wallet: connectedPubkey, nickname: newNick, message, signature_b58 }),
+      });
+      if (res.ok) {
+        nickHint(newNick ? `✓ nickname set: ${newNick}` : "✓ nickname cleared");
+        // refresh user stats + leaderboard
+        if (connectedPubkey) generate(connectedPubkey, true);
+        loadLeaderboardForce();
+      }
+    } catch (e) {
+      nickHint(e?.message || "could not set nickname");
+    }
+  }
+  $("nickSetBtn").addEventListener("click", () => {
+    const v = ($("nickInput").value || "").trim();
+    if (!v) { nickHint("type a nickname first"); return; }
+    if (!/^[A-Za-z0-9_-]{2,24}$/.test(v)) { nickHint("2-24 chars: letters, digits, _ or -"); return; }
+    signAndSendNickname(v);
+  });
+  $("nickClearBtn").addEventListener("click", () => {
+    $("nickInput").value = "";
+    signAndSendNickname("");
+  });
+
   // ====== PHANTOM CONNECT + REFERRAL CLAIM ======
   $("connectBtn").addEventListener("click", async () => {
     const provider = window.phantom?.solana || window.solana;
@@ -80,6 +126,9 @@
       const resp = await provider.connect();
       const pk = resp.publicKey?.toString();
       if (!pk) return;
+      phantomProvider = provider;
+      connectedPubkey = pk;
+      $("nickRow").hidden = false;
 
       $("addrInput").value = pk;
       generate(pk);
@@ -275,6 +324,10 @@
     try {
       const s = await api(`/api/wallet/${addr}`);
       renderStats(addr, s);
+      // if this is the connected wallet, populate the nickname input
+      if (connectedPubkey === addr && $("nickInput")) {
+        $("nickInput").value = s.nickname || "";
+      }
     } catch (e) {
       hint("could not load stats: " + (e?.message || "unknown"));
       renderEmpty();
@@ -352,9 +405,12 @@
     body.innerHTML = slice.map((r, i) => {
       const rk = rankFor(r.points).name;
       const rank = start + i + 1;
+      const display = r.nickname
+        ? `<span class="nick">${escapeHtml(r.nickname)}</span><span class="nick-sub copyable" data-full="${r.wallet}" title="click to copy ${r.wallet}">${short(r.wallet)}</span>`
+        : `<code class="copyable" data-full="${r.wallet}" title="click to copy ${r.wallet}">${short(r.wallet)}</code>`;
       return `<tr>
         <td>${rank}</td>
-        <td><code class="copyable" data-full="${r.wallet}" title="click to copy ${r.wallet}">${short(r.wallet)}</code></td>
+        <td>${display}</td>
         <td>${r.refs}</td>
         <td>${r.points.toLocaleString()}</td>
         <td><span class="rk" data-rank="${rk}">${rk}</span></td>
@@ -369,6 +425,19 @@
 
   $("lbPrev").addEventListener("click", () => { lbPage--; renderLbPage(); window.scrollTo({ top: document.getElementById("leaderboard").offsetTop - 20, behavior: "smooth" }); });
   $("lbNext").addEventListener("click", () => { lbPage++; renderLbPage(); window.scrollTo({ top: document.getElementById("leaderboard").offsetTop - 20, behavior: "smooth" }); });
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  async function loadLeaderboardForce() {
+    try {
+      const { rows, updated } = await api("/api/leaderboard");
+      lbAllRows = rows || [];
+      renderLbPage();
+      $("lbUpdated").textContent = "updated " + (updated || new Date().toISOString()).replace("T", " ").slice(0, 16) + " UTC";
+    } catch {}
+  }
 
   (async function loadLeaderboard() {
     const body = $("lbBody");

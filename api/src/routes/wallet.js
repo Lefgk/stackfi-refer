@@ -14,7 +14,7 @@ export async function walletRoute(app) {
       "SELECT * FROM balances WHERE wallet = $1",
       [addr]
     );
-    const b = bal[0] || { points: 0, buy_points: 0, ref_points: 0, refs: 0 };
+    const b = bal[0] || { points: 0, buy_points: 0, ref_points: 0, refs: 0, nickname: null };
 
     const { rows: ref } = await pool.query(
       "SELECT referrer FROM referrals WHERE referee = $1",
@@ -23,6 +23,7 @@ export async function walletRoute(app) {
 
     return {
       wallet: addr,
+      nickname: b.nickname || null,
       points: Number(b.points),
       buy_points: Number(b.buy_points),
       ref_points: Number(b.ref_points),

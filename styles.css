@@ -196,6 +196,13 @@ input[type=text]:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-
 .link-row input{flex:1;color:var(--teal)}
 
 .share{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.nick-row{margin-top:18px;padding-top:16px;border-top:1px dashed var(--border-soft)}
+.nick-row .lbl span{font-size:11px}
+.nick{
+  font-family:var(--display);font-weight:700;color:var(--teal);
+  letter-spacing:.02em;
+}
+.nick-sub{color:var(--muted);font-size:11px;margin-left:6px;font-family:var(--mono)}
 
 .qrbox{margin-top:14px;display:flex;justify-content:center;padding:14px;background:#fff;border-radius:6px;width:fit-content}
 .qrbox img{display:block}

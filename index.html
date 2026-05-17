@@ -13,11 +13,11 @@
   <meta property="og:url" content="https://referrals.coyoti.xyz/" />
   <meta property="og:title" content="Coyoti — Get Your Link" />
   <meta property="og:description" content="Grow your network. Earn big. Buy $COYT through a friend's link, both of you earn points." />
-  <meta property="og:image" content="https://referrals.coyoti.xyz/og.png" />
-  <meta property="og:image:secure_url" content="https://referrals.coyoti.xyz/og.png" />
-  <meta property="og:image:type" content="image/png" />
-  <meta property="og:image:width" content="1254" />
-  <meta property="og:image:height" content="1254" />
+  <meta property="og:image" content="https://referrals.coyoti.xyz/og.jpg" />
+  <meta property="og:image:secure_url" content="https://referrals.coyoti.xyz/og.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="1200" />
   <meta property="og:image:alt" content="Coyoti — Get Your Link" />
 
   <!-- Twitter -->
@@ -25,7 +25,7 @@
   <meta name="twitter:site" content="@coyoti" />
   <meta name="twitter:title" content="Coyoti — Get Your Link" />
   <meta name="twitter:description" content="Grow your network. Earn big. Buy $COYT through a friend's link, both of you earn points." />
-  <meta name="twitter:image" content="https://referrals.coyoti.xyz/og.png" />
+  <meta name="twitter:image" content="https://referrals.coyoti.xyz/og.jpg" />
   <meta name="twitter:image:alt" content="Coyoti — Get Your Link" />
 
   <link rel="stylesheet" href="./styles.css" />
@@ -137,6 +137,16 @@
           <button id="qrBtn" class="btn small ghost" type="button">show qr</button>
         </div>
         <div id="qrBox" class="qrbox" hidden></div>
+
+        <div class="nick-row" id="nickRow" hidden>
+          <label class="lbl">your nickname <span class="muted" style="text-transform:none;letter-spacing:0">(hides your wallet on the leaderboard — connect to sign)</span></label>
+          <div class="link-row">
+            <input id="nickInput" type="text" maxlength="24" placeholder="2-24 chars: a-z, 0-9, _ or -" />
+            <button id="nickSetBtn" class="btn small" type="button">set</button>
+            <button id="nickClearBtn" class="btn small ghost" type="button">clear</button>
+          </div>
+          <div class="hint" id="nickHint"></div>
+        </div>
       </div>
     </section>
 
