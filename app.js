@@ -307,18 +307,17 @@
 
     try { localStorage.setItem("coyoti_addr", addr); } catch {}
 
-    const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || location.protocol === "file:";
-    const base = isLocal ? PROD_BASE : (location.origin + location.pathname.replace(/\/$/, ""));
+    const base = PROD_BASE;
     const link = `${base}/?ref=${addr}`;
     $("linkOut").value = link;
     $("output").hidden = false;
 
     const tweet = encodeURIComponent(
-      "stacking on @coyoti — Solana referral game.\n\n" +
+      "joining @coyoti — Solana referral game.\n\n" +
       "grow your network. earn big. use my link:\n" + link
     );
     $("shareX").href  = `https://twitter.com/intent/tweet?text=${tweet}`;
-    $("shareTg").href = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("stack with me on Coyoti")}`;
+    $("shareTg").href = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("join me on Coyoti")}`;
 
     if (!API_BASE) { renderEmpty(); return; }
     try {

@@ -292,7 +292,7 @@ input[type=text]:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-
   .token-card{grid-template-columns:480px 1fr;gap:32px}
   .token-art{width:480px;height:480px}
 }
-.token-info{display:flex;flex-direction:column;justify-content:center;gap:12px;min-width:0}
+.token-info{display:flex;flex-direction:column;justify-content:flex-start;gap:12px;min-width:0;padding-top:14px}
 .token-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .token-symbol{
   font-family:var(--display);font-weight:900;font-size:28px;
